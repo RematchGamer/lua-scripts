@@ -83,47 +83,47 @@ while true do
 	local closestObj
 	local shortestDist = math.huge
 
+	-- rebuild tracked mobs set (unique names only)
+	local uniqueMobs = {}
+	for name, cb in pairs(checkboxes) do
+		if cb.Checked.Value and cb.Frame.Parent then
+			uniqueMobs[name] = true
+		end
+	end
+
 	for _, obj in ipairs(mobsFolder:GetChildren()) do
 		if obj:IsA("Model") and obj:FindFirstChild("Entity") then
 			local healthValue = obj.Entity:FindFirstChild("Health")
 			if healthValue then
-				-- Delete mobs with 0 health immediately
+				-- delete mobs with 0 health
 				if healthValue.Value <= 0 then
 					obj:Destroy()
 					if checkboxes[obj.Name] then
 						checkboxes[obj.Name].Frame:Destroy()
 						checkboxes[obj.Name] = nil
-						updateTrackedMobs()
 					end
 					continue
 				end
 
-				-- Dynamically add checkbox if unseen
-				if not checkboxes[obj.Name] then
-					local cb = window:addCheckbox(obj.Name)
-					checkboxes[obj.Name] = cb
-					cb.Checked.Changed:Connect(updateTrackedMobs)
-					updateTrackedMobs()
-				end
-
-				if #mobs == 0 or table.find(mobs, obj.Name) then
-					if obj:FindFirstChild("HumanoidRootPart") then
-						local dist = (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude
-
-						-- Delete mobs under health & distance thresholds
-						if healthValue.Value < healthThreshold and dist < distanceThreshold then
-							obj:Destroy()
-							if checkboxes[obj.Name] then
-								checkboxes[obj.Name].Frame:Destroy()
-								checkboxes[obj.Name] = nil
-								updateTrackedMobs()
-							end
-							continue
+				-- delete mobs below thresholds
+				if obj:FindFirstChild("HumanoidRootPart") then
+					local dist = (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude
+					if healthValue.Value < healthThreshold and dist < distanceThreshold then
+						obj:Destroy()
+						if checkboxes[obj.Name] then
+							checkboxes[obj.Name].Frame:Destroy()
+							checkboxes[obj.Name] = nil
 						end
+						continue
+					end
 
+					-- track closest mob only if its name hasn't been added yet
+					if next(uniqueMobs) == nil or uniqueMobs[obj.Name] then
 						if dist < shortestDist then
 							shortestDist = dist
 							closestObj = obj
+							-- mark this name as "already counted"
+							uniqueMobs[obj.Name] = nil
 						end
 					end
 				end
@@ -131,7 +131,14 @@ while true do
 		end
 	end
 
+	-- update mobs table with remaining unique names
+	mobs = {}
+	for name, _ in pairs(uniqueMobs) do
+		table.insert(mobs, name)
+	end
+
 	if closestObj then
 		ClickToMove:MoveTo(closestObj.HumanoidRootPart.Position)
 	end
 end
+
