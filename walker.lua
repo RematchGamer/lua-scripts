@@ -18,12 +18,7 @@ local library = loadstring(game:HttpGet(
 
 local window = library:MakeWindow("Mob Selector")
 
-local checkboxes = {}
-local mobs = {}
-local placeMobs = {}
-local running = true
-
--- Threshold boxes
+-- User threshold boxes (kept for convenience)
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
 	local num = tonumber(val)
 	if num then
@@ -40,7 +35,12 @@ local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
 end)
 distanceBox.Value = tostring(distanceThreshold)
 
--- Update selected mobs from checkboxes
+-- Store checkbox objects
+local checkboxes = {}
+local mobs = {} -- list of selected mob names
+local placeMobs = {} -- dict of placeID -> mob names
+
+-- Update tracked mob list from user selections
 local function updateTrackedMobs()
 	mobs = {}
 	for name, cb in pairs(checkboxes) do
@@ -50,8 +50,8 @@ local function updateTrackedMobs()
 	end
 end
 
--- Copy list button
-window:addButton("Copy Mob List", function()
+-- Add copy button (for console output of place+mob names)
+local copyButton = window:addButton("Copy Mob List", function()
 	local placeID = game.PlaceId
 	placeMobs[placeID] = {}
 	for _, mobName in ipairs(mobs) do
@@ -63,17 +63,10 @@ window:addButton("Copy Mob List", function()
 	end
 end)
 
--- Close program button (library-friendly)
-window:addButton("Close Program", function()
-	running = false
-	if window and window.Close then
-		window:Close()
-	end
-end)
-
--- Main loop
+-- Safe main loop
 task.spawn(function()
 	local currentTarget = nil
+	local running = true
 
 	while running do
 		task.wait(loopInterval)
@@ -85,7 +78,7 @@ task.spawn(function()
 			local closestObj
 			local shortestDist = math.huge
 
-			-- Add checkboxes for new mobs
+			-- Detect new mobs and add them to GUI ONCE
 			for _, obj in ipairs(mobsFolder:GetChildren()) do
 				if obj:IsA("Model") and obj:FindFirstChild("Entity") then
 					if not checkboxes[obj.Name] then
@@ -98,18 +91,17 @@ task.spawn(function()
 
 			updateTrackedMobs()
 
-			-- Keep current target until dead
+			-- Keep targeting same mob if still alive
 			if currentTarget and currentTarget.Parent and currentTarget:FindFirstChild("Entity") then
 				local healthValue = currentTarget.Entity:FindFirstChild("Health")
 				if healthValue and healthValue.Value > 0 then
-					return
+					continue
 				else
 					currentTarget:Destroy()
 					currentTarget = nil
 				end
 			end
 
-			-- Find closest target among selected mobs
 			for _, obj in ipairs(mobsFolder:GetChildren()) do
 				if not table.find(mobs, obj.Name) then
 					continue
@@ -145,10 +137,10 @@ task.spawn(function()
 
 		if not success then
 			warn("Error: " .. tostring(err))
-			running = false
 			if window and window.Close then
 				window:Close()
 			end
+			running = false
 		end
 	end
 end)
