@@ -11,13 +11,13 @@ local mobs = {} -- names of mobs to track
 local checkboxes = {} -- mapping name -> checkbox object
 
 local loopInterval = 0.05
-local healthThreshold = 0
-local distanceThreshold = 0
+local healthThreshold = 6333
+local distanceThreshold = 50
 
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Selector")
 
--- Add textboxes for health and distance thresholds
+-- Threshold textboxes
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
 	local num = tonumber(val)
 	if num then
@@ -34,7 +34,7 @@ local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
 end)
 distanceBox.Value = tostring(distanceThreshold)
 
--- Function to update mobs list from checkboxes
+-- Update tracked mobs
 local function updateTrackedMobs()
 	mobs = {}
 	for name, cb in pairs(checkboxes) do
@@ -44,22 +44,17 @@ local function updateTrackedMobs()
 	end
 end
 
--- Save mobs to a text file
-local function saveMobsToFile()
-	local filePath = "TrackedMobs.txt"
-	local file = io.open(filePath, "w")
-	if file then
-		for _, obj in ipairs(mobsFolder:GetChildren()) do
-			if obj:IsA("Model") and obj:FindFirstChild("Entity") then
-				local healthValue = obj.Entity:FindFirstChild("Health")
-				if healthValue then
-					file:write(string.format("%s | Health: %d\n", obj.Name, healthValue.Value))
-				end
-			end
+-- Button to print or copy current mobs
+window:addButton("Print Mob List", function()
+	local mobNames = {}
+	for _, obj in ipairs(mobsFolder:GetChildren()) do
+		if obj:IsA("Model") and obj:FindFirstChild("Entity") then
+			table.insert(mobNames, obj.Name)
 		end
-		file:close()
 	end
-end
+	print("Current mobs:", table.concat(mobNames, ", "))
+	setclipboard(table.concat(mobNames, ", ")) -- copies to clipboard
+end)
 
 -- Main loop
 while true do
@@ -74,7 +69,7 @@ while true do
 			if healthValue then
 				local dist = obj:FindFirstChild("HumanoidRootPart") and (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude or math.huge
 
-				-- Delete mobs with 0 health or below threshold and distance
+				-- Delete mobs with 0 health or below thresholds
 				if healthValue.Value <= 0 or (healthValue.Value < healthThreshold and dist < distanceThreshold) then
 					if checkboxes[obj.Name] then
 						checkboxes[obj.Name].Frame:Destroy()
@@ -84,7 +79,7 @@ while true do
 					continue
 				end
 
-				-- Dynamically add to GUI if we haven't seen this mob yet
+				-- Add mob checkbox dynamically
 				if not checkboxes[obj.Name] then
 					local cb = window:addCheckbox(obj.Name)
 					checkboxes[obj.Name] = cb
@@ -105,6 +100,4 @@ while true do
 	if closestObj then
 		ClickToMove:MoveTo(closestObj.HumanoidRootPart.Position)
 	end
-
-	saveMobsToFile()
 end
