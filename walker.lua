@@ -12,8 +12,8 @@ local mobs = {} -- currently tracked mob names
 local foundMobs = {} -- saved { [placeID] = {mobName1, mobName2...} }
 
 local loopInterval = 0.05
-local healthThreshold = 6333
-local distanceThreshold = 50
+local healthThreshold = 0
+local distanceThreshold = 0
 
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Selector")
