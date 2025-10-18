@@ -18,21 +18,12 @@ local library = loadstring(game:HttpGet(
 
 local window = library:MakeWindow("Mob Selector")
 
--- Create a small red X button at the top-right
-local closeButtonGui = Instance.new("TextButton")
-closeButtonGui.Parent = window.MainFrame or window
-closeButtonGui.Text = "X"
-closeButtonGui.Size = UDim2.new(0, 24, 0, 24)
-closeButtonGui.Position = UDim2.new(1, -30, 0, 6)
-closeButtonGui.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
-closeButtonGui.TextColor3 = Color3.new(1, 1, 1)
-closeButtonGui.Font = Enum.Font.SourceSansBold
-closeButtonGui.TextSize = 18
-closeButtonGui.ZIndex = 9999
-closeButtonGui.AutoButtonColor = true
-closeButtonGui.Visible = true
+local checkboxes = {}
+local mobs = {}
+local placeMobs = {}
+local running = true
 
--- TextBoxes for thresholds
+-- Threshold boxes
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
 	local num = tonumber(val)
 	if num then
@@ -49,11 +40,7 @@ local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
 end)
 distanceBox.Value = tostring(distanceThreshold)
 
-local checkboxes = {}
-local mobs = {}
-local placeMobs = {}
-local running = true
-
+-- Update selected mobs from checkboxes
 local function updateTrackedMobs()
 	mobs = {}
 	for name, cb in pairs(checkboxes) do
@@ -63,7 +50,8 @@ local function updateTrackedMobs()
 	end
 end
 
-local copyButton = window:addButton("Copy Mob List", function()
+-- Copy list button
+window:addButton("Copy Mob List", function()
 	local placeID = game.PlaceId
 	placeMobs[placeID] = {}
 	for _, mobName in ipairs(mobs) do
@@ -75,19 +63,15 @@ local copyButton = window:addButton("Copy Mob List", function()
 	end
 end)
 
--- Close button logic
-local function shutdownProgram()
-	print("Program closed.")
+-- Close program button (library-friendly)
+window:addButton("Close Program", function()
 	running = false
 	if window and window.Close then
 		window:Close()
 	end
-	if closeButtonGui then
-		closeButtonGui:Destroy()
-	end
-end
-closeButtonGui.MouseButton1Click:Connect(shutdownProgram)
+end)
 
+-- Main loop
 task.spawn(function()
 	local currentTarget = nil
 
@@ -101,6 +85,7 @@ task.spawn(function()
 			local closestObj
 			local shortestDist = math.huge
 
+			-- Add checkboxes for new mobs
 			for _, obj in ipairs(mobsFolder:GetChildren()) do
 				if obj:IsA("Model") and obj:FindFirstChild("Entity") then
 					if not checkboxes[obj.Name] then
@@ -113,16 +98,18 @@ task.spawn(function()
 
 			updateTrackedMobs()
 
+			-- Keep current target until dead
 			if currentTarget and currentTarget.Parent and currentTarget:FindFirstChild("Entity") then
 				local healthValue = currentTarget.Entity:FindFirstChild("Health")
 				if healthValue and healthValue.Value > 0 then
-					continue
+					return
 				else
 					currentTarget:Destroy()
 					currentTarget = nil
 				end
 			end
 
+			-- Find closest target among selected mobs
 			for _, obj in ipairs(mobsFolder:GetChildren()) do
 				if not table.find(mobs, obj.Name) then
 					continue
@@ -158,7 +145,10 @@ task.spawn(function()
 
 		if not success then
 			warn("Error: " .. tostring(err))
-			shutdownProgram()
+			running = false
+			if window and window.Close then
+				window:Close()
+			end
 		end
 	end
 end)
