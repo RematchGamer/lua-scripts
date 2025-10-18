@@ -73,7 +73,7 @@ spawn(function()
 				local dist = (hrp.Position - rootPart.Position).Magnitude
 
 				-- Destroy mob if below thresholds
-				if health <= healthThreshold or dist <= distanceThreshold then
+				if health == 0 or (health <= healthThreshold and dist <= distanceThreshold) then
 					mob:Destroy()
 					continue
 				end
