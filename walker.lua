@@ -7,106 +7,149 @@ local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("
 local ClickToMove = PlayerModule:GetClickToMoveController()
 
 local mobsFolder = workspace:WaitForChild("Mobs")
-local placeId = game.PlaceId
-local foundMobs = {}
-local checkboxes = {}
-local mobs = {}
-local currentTarget = nil
 
-local loopInterval = 0.05
 local healthThreshold = 0
 local distanceThreshold = 0
+local loopInterval = 0.05
 
-local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
+local library = loadstring(game:HttpGet(
+	"https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"
+))()
+
 local window = library:MakeWindow("Mob Selector")
 
--- Button to copy list of found mobs
-local copyButton = window:addButton("Copy Mob List", function()
-	local formatted = "MobList = {\n    [" .. placeId .. "] = { "
-	for i, mobName in ipairs(foundMobs) do
-		formatted = formatted .. string.format("'%s'%s", mobName, i < #foundMobs and ", " or "")
+-- User threshold boxes (kept for convenience)
+local healthBox = window:addTextBoxF("Health Threshold", function(val)
+	local num = tonumber(val)
+	if num then
+		healthThreshold = num
 	end
-	formatted = formatted .. " }\n}"
-	setclipboard(formatted)
-	print("Mob list copied to clipboard!")
+end)
+healthBox.Value = tostring(healthThreshold)
+
+local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
+	local num = tonumber(val)
+	if num then
+		distanceThreshold = num
+	end
+end)
+distanceBox.Value = tostring(distanceThreshold)
+
+-- Store checkbox objects
+local checkboxes = {}
+local mobs = {} -- list of selected mob names
+local placeMobs = {} -- dict of placeID -> mob names
+local running = true
+
+-- Update tracked mob list from user selections
+local function updateTrackedMobs()
+	mobs = {}
+	for name, cb in pairs(checkboxes) do
+		if cb.Checked.Value then
+			table.insert(mobs, name)
+		end
+	end
+end
+
+-- Add copy button (for console output of place+mob names)
+local copyButton = window:addButton("Copy Mob List", function()
+	local placeID = game.PlaceId
+	placeMobs[placeID] = {}
+	for _, mobName in ipairs(mobs) do
+		table.insert(placeMobs[placeID], mobName)
+	end
+	print("Mobs for place " .. placeID .. ":")
+	for id, mobList in pairs(placeMobs) do
+		print("[" .. id .. "] = { " .. table.concat(mobList, ", ") .. " }")
+	end
 end)
 
-local success, err = pcall(function()
-	while true do
+-- Add manual close button
+local closeButton = window:addButton("Close Program", function()
+	print("Program manually closed by user.")
+	running = false
+	if window and window.Close then
+		window:Close()
+	end
+end)
+
+-- Safe main loop
+task.spawn(function()
+	local currentTarget = nil
+
+	while running do
 		task.wait(loopInterval)
+		local success, err = pcall(function()
+			if not character or not rootPart or not ClickToMove then
+				error("Player missing components")
+			end
 
-		if not character or not rootPart then
-			character = player.Character or player.CharacterAdded:Wait()
-			rootPart = character:WaitForChild("HumanoidRootPart")
-		end
+			local closestObj
+			local shortestDist = math.huge
 
-		local closestObj
-		local shortestDist = math.huge
+			-- Detect new mobs and add them to GUI ONCE
+			for _, obj in ipairs(mobsFolder:GetChildren()) do
+				if obj:IsA("Model") and obj:FindFirstChild("Entity") then
+					if not checkboxes[obj.Name] then
+						local cb = window:addCheckbox(obj.Name)
+						checkboxes[obj.Name] = cb
+						cb.Checked.Changed:Connect(updateTrackedMobs)
+					end
+				end
+			end
 
-		for _, obj in ipairs(mobsFolder:GetChildren()) do
-			if obj:IsA("Model") and obj:FindFirstChild("Entity") then
-				local healthValue = obj.Entity:FindFirstChild("Health")
-				if healthValue and obj:FindFirstChild("HumanoidRootPart") then
+			updateTrackedMobs()
+
+			-- Keep targeting same mob if still alive
+			if currentTarget and currentTarget.Parent and currentTarget:FindFirstChild("Entity") then
+				local healthValue = currentTarget.Entity:FindFirstChild("Health")
+				if healthValue and healthValue.Value > 0 then
+					continue
+				else
+					currentTarget:Destroy()
+					currentTarget = nil
+				end
+			end
+
+			for _, obj in ipairs(mobsFolder:GetChildren()) do
+				if not table.find(mobs, obj.Name) then
+					continue
+				end
+				if obj:IsA("Model") and obj:FindFirstChild("Entity") then
+					local entity = obj.Entity
+					local healthValue = entity:FindFirstChild("Health")
+					local hrp = obj:FindFirstChild("HumanoidRootPart")
+
+					if not healthValue or not hrp then
+						obj:Destroy()
+						continue
+					end
+
 					if healthValue.Value <= 0 then
 						obj:Destroy()
 						continue
 					end
 
-					if not checkboxes[obj.Name] then
-						local cb = window:addCheckbox(obj.Name)
-						checkboxes[obj.Name] = cb
-						cb.Checked.Changed:Connect(function()
-							mobs = {}
-							for name, box in pairs(checkboxes) do
-								if box.Checked.Value then
-									table.insert(mobs, name)
-								end
-							end
-						end)
-						table.insert(foundMobs, obj.Name)
+					local dist = (hrp.Position - rootPart.Position).Magnitude
+					if dist < shortestDist then
+						shortestDist = dist
+						closestObj = obj
 					end
-
-					if #mobs == 0 or table.find(mobs, obj.Name) then
-						local dist = (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude
-
-						if currentTarget then
-							if currentTarget.Parent == nil or currentTarget.Entity.Health.Value <= 0 then
-								currentTarget:Destroy()
-								currentTarget = nil
-							end
-						end
-
-						if not currentTarget then
-							if dist < shortestDist then
-								shortestDist = dist
-								closestObj = obj
-							end
-						else
-							local currentDist = (currentTarget.HumanoidRootPart.Position - rootPart.Position).Magnitude
-							if dist < currentDist then
-								currentTarget = obj
-							end
-						end
-					end
-				else
-					obj:Destroy()
 				end
 			end
-		end
 
-		if not currentTarget and closestObj then
-			currentTarget = closestObj
-		end
+			if closestObj then
+				currentTarget = closestObj
+				ClickToMove:MoveTo(closestObj.HumanoidRootPart.Position)
+			end
+		end)
 
-		if currentTarget and currentTarget:FindFirstChild("HumanoidRootPart") then
-			ClickToMove:MoveTo(currentTarget.HumanoidRootPart.Position)
+		if not success then
+			warn("Error: " .. tostring(err))
+			if window and window.Close then
+				window:Close()
+			end
+			running = false
 		end
 	end
 end)
-
-if not success then
-	warn("Error occurred, closing window:", err)
-	if window and window.Destroy then
-		window:Destroy()
-	end
-end
