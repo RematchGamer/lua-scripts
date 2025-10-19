@@ -13,7 +13,7 @@ local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufg
 local window = library:MakeWindow("Mob Selector")
 
 local healthThreshold = 0
-local distanceThreshold = 0
+local distanceThreshold = 1
 
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
 	local num = tonumber(val)
@@ -48,46 +48,48 @@ local function addMobToGUI(name)
 end
 
 spawn(function()
-	while true do
-		task.wait(loopInterval)
-		local nearestMob
-		local shortestDist = math.huge
-
+	local nearestMob
+	local shortestDist = math.huge
+	local lastPos = rootPart.Position
+	
+	while task.wait(loopInterval) do			
 		for _, mob in ipairs(mobsFolder:GetChildren()) do
 			if mob:IsA("Model") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
 				local hrp = mob:FindFirstChild("HumanoidRootPart")
 				if not hrp then continue end
-
 				-- Add to unique list if not already added
 				if not uniqueMobNames[mob.Name] then
 					uniqueMobNames[mob.Name] = true
 					addMobToGUI(mob.Name)
 				end
-
 				-- Skip mob if it’s not checked
 				if #trackedMobs > 0 and not table.find(trackedMobs, mob.Name) then
 					continue
 				end
-
+				
 				local health = mob.Entity.Health.Value
 				local dist = (hrp.Position - rootPart.Position).Magnitude
-
 				-- Destroy mob if below thresholds
 				if health == 0 or (health <= healthThreshold and dist <= distanceThreshold) then
+					if nearestMob == mob then
+						nearestMob = nil
+						shortestDist = math.huge
+					end
 					mob:Destroy()
 					continue
 				end
-
 				-- Track nearest mob
-				if dist < shortestDist then
-					shortestDist = dist
-					nearestMob = mob
+				if dist + distanceThreshold < shortestDist then
+				    shortestDist = dist
+				    nearestMob = mob
 				end
 			end
 		end
 
-		if nearestMob and nearestMob.Parent then
-			ClickToMove:MoveTo(nearestMob.HumanoidRootPart.Position)
+		if nearestMob and nearestMob.Parent and (rootPart.Position-nearestMob.HumanoidRootPart.Position).Magnitude > distanceThreshold then
+			lastPos = nearestMob.HumanoidRootPart.Position
+			shortestDist = (nearestMob.HumanoidRootPart.Position - rootPart.Position).Magnitude
+			ClickToMove:MoveTo(lastPos)
 		end
 	end
 end)
