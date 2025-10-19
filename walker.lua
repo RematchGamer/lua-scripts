@@ -61,7 +61,11 @@ spawn(function()
 	local shortestDist = math.huge
 	local lastPos = rootPart.Position
 	
-	while task.wait(loopInterval) do			
+	while task.wait(loopInterval) do
+		if nearestMob == nil or not nearestMob.Parent then
+			nearestMob = nil
+			shortestDist = math.huge
+		end
 		for _, mob in ipairs(mobsFolder:GetChildren()) do
 			if mob:IsA("Model") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
 				local hrp = mob:FindFirstChild("HumanoidRootPart")
@@ -80,15 +84,11 @@ spawn(function()
 				local dist = (hrp.Position - rootPart.Position).Magnitude
 
 				if health == 0 or (health <= healthThreshold and dist <= distanceThreshold) then
-					if nearestMob == mob then
-						nearestMob = nil
-						shortestDist = math.huge
-					end
 					mob:Destroy()
 					continue
 				end
 
-				if dist + distanceThreshold < shortestDist and dist < 1000 then
+				if dist + distanceThreshold < shortestDist then
 				    shortestDist = dist
 					if mob ~= nearestMob then
 				    	nearestMob = mob
