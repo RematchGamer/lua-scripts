@@ -57,15 +57,13 @@ local function addMobToGUI(name)
 end
 
 local function cleanupWorkspace()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			if not obj:IsDescendantOf(mobsFolder) and not obj:IsDescendantOf(character) then
-				if obj.CanCollide == false then
-					obj:Destroy()
-				end
-			end
-		end
-	end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.CanCollide == false and 
+           not obj:IsDescendantOf(mobsFolder) and 
+           not obj:IsDescendantOf(character) then
+            obj:Destroy()
+        end
+    end
 end
 
 local lastPos = rootPart.Position
