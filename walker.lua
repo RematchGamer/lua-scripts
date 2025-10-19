@@ -56,16 +56,46 @@ local function addMobToGUI(name)
 	updateTrackedMobs()
 end
 
+local function cleanupWorkspace()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			if not obj:IsDescendantOf(mobsFolder) and not obj:IsDescendantOf(character) then
+				if obj.CanCollide == false then
+					obj:Destroy()
+				end
+			end
+		end
+	end
+end
+
+local lastPos = rootPart.Position
+local shortestDist = math.huge
+
+local function moveToMobTarget(mob)
+	if not mob or not mob.Parent then return end
+	local hrp = mob:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local targetPos = hrp.Position
+	local dist = (rootPart.Position - targetPos).Magnitude
+
+	if dist > distanceThreshold then
+		lastPos = targetPos
+		shortestDist = dist
+		pcall(function()
+			ClickToMove:MoveTo(lastPos)
+		end)
+		cleanupWorkspace()
+	end
+end
+
 spawn(function()
 	local nearestMob
-	local shortestDist = math.huge
-	local lastPos = rootPart.Position
-	
+
 	while task.wait(loopInterval) do
-		if nearestMob == nil or not nearestMob.Parent then
-			nearestMob = nil
-			shortestDist = math.huge
-		end
+		nearestMob = nil
+		shortestDist = math.huge
+
 		for _, mob in ipairs(mobsFolder:GetChildren()) do
 			if mob:IsA("Model") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
 				local hrp = mob:FindFirstChild("HumanoidRootPart")
@@ -79,7 +109,7 @@ spawn(function()
 				if #trackedMobs > 0 and not table.find(trackedMobs, mob.Name) then
 					continue
 				end
-				
+
 				local health = mob.Entity.Health.Value
 				local dist = (hrp.Position - rootPart.Position).Magnitude
 
@@ -89,24 +119,15 @@ spawn(function()
 				end
 
 				if dist + distanceThreshold < shortestDist then
-				    shortestDist = dist
+					shortestDist = dist
 					if mob ~= nearestMob then
-				    	nearestMob = mob
+						nearestMob = mob
 						noClip(mob)
 					end
 				end
 			end
 		end
 
-		if nearestMob and nearestMob.Parent then
-			local targetPos = nearestMob:FindFirstChild("HumanoidRootPart") and nearestMob.HumanoidRootPart.Position
-			if targetPos and (rootPart.Position - targetPos).Magnitude > distanceThreshold then
-				lastPos = targetPos
-				shortestDist = (targetPos - rootPart.Position).Magnitude
-				pcall(function()
-					ClickToMove:MoveTo(lastPos)
-				end)
-			end
-		end
+		moveToMobTarget(nearestMob)
 	end
 end)
