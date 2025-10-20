@@ -5,46 +5,32 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 
 local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
 local ClickToMove = PlayerModule:GetClickToMoveController()
-
 local mobsFolder = workspace:WaitForChild("Mobs")
-local loopInterval = 0.1
 
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Selector")
 
-local healthThreshold = 0
-local distanceThreshold = 1
+local loopInterval = 0.1
+local healthThreshold, distanceThreshold = 0, 1
+local checkboxes, trackedMobs = {}, {}
 
-local healthBox = window:addTextBoxF("Health Threshold", function(val)
-	local num = tonumber(val)
-	if num then healthThreshold = num end
-end)
-healthBox.Value = tostring(healthThreshold)
+-- UI setup
+window:addTextBoxF("Health Threshold", function(v)
+	local n = tonumber(v)
+	if n then healthThreshold = n end
+end).Value = tostring(healthThreshold)
 
-local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
-	local num = tonumber(val)
-	if num then distanceThreshold = num end
-end)
-distanceBox.Value = tostring(distanceThreshold)
+window:addTextBoxF("Distance Threshold", function(v)
+	local n = tonumber(v)
+	if n then distanceThreshold = n end
+end).Value = tostring(distanceThreshold)
 
-local uniqueMobNames = {}
-local checkboxes = {}
-local trackedMobs = {}
-
-local function updateTrackedMobs()
+-- Tracking
+local function updateTracked()
 	trackedMobs = {}
 	for name, cb in pairs(checkboxes) do
 		if cb.Checked.Value then
-			table.insert(trackedMobs, name)
-		end
-	end
-end
-
-local function noClip(target)
-	if not target or not target:IsA("Model") then return end
-	for _, part in ipairs(target:GetDescendants()) do
-		if part:IsA("BasePart") then
-			part.CanCollide = false
+			trackedMobs[#trackedMobs + 1] = name
 		end
 	end
 end
@@ -52,81 +38,73 @@ end
 local function addMobToGUI(name)
 	local cb = window:addCheckbox(name)
 	checkboxes[name] = cb
-	cb.Checked.Changed:Connect(updateTrackedMobs)
-	updateTrackedMobs()
+	cb.Checked.Changed:Connect(updateTracked)
+	updateTracked()
 end
 
-local function cleanupWorkspace()
-	local char = player.Character or player.CharacterAdded:Wait()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and obj.CanCollide == false
-		and not obj:IsDescendantOf(mobsFolder)
-		and not obj:IsDescendantOf(char)
-		and not Players:GetPlayerFromCharacter(obj.Parent) then
-			obj:Destroy()
+-- Utility
+local function noClip(model)
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.CanCollide = false
 		end
 	end
 end
 
-local lastPos = rootPart.Position
-local shortestDist = math.huge
-
-local function moveToMobTarget(mob)
-	if not mob or not mob.Parent then return end
-	local hrp = mob:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	local targetPos = hrp.Position
-	local dist = (rootPart.Position - targetPos).Magnitude
-
-	if dist > distanceThreshold then
-		lastPos = targetPos
-		shortestDist = dist
-		pcall(function()
-			ClickToMove:MoveTo(lastPos)
-		end)
-		cleanupWorkspace()
+local function safeMoveTo(pos)
+	if typeof(pos) ~= "Vector3" then return end
+	local ok, err = pcall(function()
+		ClickToMove:MoveTo(pos)
+	end)
+	if not ok then
+		warn("MoveTo failed:", err)
 	end
 end
 
-spawn(function()
-	local nearestMob
+local function moveToMob(mob)
+	local hrp = mob:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	if (rootPart.Position - hrp.Position).Magnitude > distanceThreshold then
+		safeMoveTo(hrp.Position)
+	end
+end
+
+-- Main loop
+task.spawn(function()
 	while task.wait(loopInterval) do
-		nearestMob = nil
-		shortestDist = math.huge
+		local nearest, nearestDist = nil, math.huge
 
 		for _, mob in ipairs(mobsFolder:GetChildren()) do
-			if mob:IsA("Model") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
-				local hrp = mob:FindFirstChild("HumanoidRootPart")
-				if not hrp then continue end
+			local entity = mob:FindFirstChild("Entity")
+			local hrp = mob:FindFirstChild("HumanoidRootPart")
 
-				if not uniqueMobNames[mob.Name] then
-					uniqueMobNames[mob.Name] = true
-					addMobToGUI(mob.Name)
-				end
+			if not (mob:IsA("Model") and entity and hrp) then continue end
 
-				if #trackedMobs > 0 and not table.find(trackedMobs, mob.Name) then
-					continue
-				end
+			local healthObj = entity:FindFirstChild("Health")
+			if not healthObj then continue end
 
-				local health = mob.Entity.Health.Value
-				local dist = (hrp.Position - rootPart.Position).Magnitude
+			if not checkboxes[mob.Name] then
+				addMobToGUI(mob.Name)
+			end
+			if #trackedMobs > 0 and not table.find(trackedMobs, mob.Name) then
+				continue
+			end
 
-				if health == 0 or (health <= healthThreshold and dist <= distanceThreshold) then
-					mob:Destroy()
-					continue
-				end
+			local health = healthObj.Value
+			if health == 0 then
+				mob:Destroy()
+				continue
+			end
 
-				if dist + distanceThreshold < shortestDist then
-					shortestDist = dist
-					if mob ~= nearestMob then
-						nearestMob = mob
-						noClip(mob)
-					end
-				end
+			local dist = (hrp.Position - rootPart.Position).Magnitude
+			if dist < nearestDist then
+				nearest, nearestDist = mob, dist
 			end
 		end
 
-		moveToMobTarget(nearestMob)
+		if nearest then
+			noClip(nearest)
+			moveToMob(nearest)
+		end
 	end
 end)
