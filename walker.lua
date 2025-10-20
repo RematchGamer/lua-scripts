@@ -57,15 +57,15 @@ local function addMobToGUI(name)
 end
 
 local function cleanupWorkspace()
-    local char = getCurrentCharacter()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.CanCollide == false and
-           not obj:IsDescendantOf(mobsFolder) and
-           not obj:IsDescendantOf(char) and
-           not game.Players:GetPlayers()[obj.Parent] then
-            obj:Destroy()
-        end
-    end
+	local char = player.Character or player.CharacterAdded:Wait()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.CanCollide == false
+		and not obj:IsDescendantOf(mobsFolder)
+		and not obj:IsDescendantOf(char)
+		and not Players:GetPlayerFromCharacter(obj.Parent) then
+			obj:Destroy()
+		end
+	end
 end
 
 local lastPos = rootPart.Position
@@ -91,7 +91,6 @@ end
 
 spawn(function()
 	local nearestMob
-
 	while task.wait(loopInterval) do
 		nearestMob = nil
 		shortestDist = math.huge
