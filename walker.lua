@@ -1,11 +1,20 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
+
+local function getRoot()
+	local character = player.Character or player.CharacterAdded:Wait()
+	return character:WaitForChild("HumanoidRootPart"), character
+end
+
+local rootPart, character = getRoot()
+
+player.CharacterAdded:Connect(function(char)
+	character = char
+	rootPart = char:WaitForChild("HumanoidRootPart")
+end)
 
 local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
 local ClickToMove = PlayerModule:GetClickToMoveController()
-
 local mobsFolder = workspace:WaitForChild("Mobs")
 local loopInterval = 0.1
 
@@ -13,7 +22,7 @@ local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufg
 local window = library:MakeWindow("Mob Selector")
 
 local healthThreshold = 0
-local distanceThreshold = 0
+local distanceThreshold = 1
 
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
 	local num = tonumber(val)
@@ -34,26 +43,65 @@ local trackedMobs = {}
 local function updateTrackedMobs()
 	trackedMobs = {}
 	for name, cb in pairs(checkboxes) do
-		if cb and cb.Checked and cb.Checked.Value then
+		if cb.Checked.Value then
 			table.insert(trackedMobs, name)
 		end
 	end
 end
 
+local function noClip(target)
+	if not target or not target:IsA("Model") then return end
+	for _, part in ipairs(target:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end
+end
+
 local function addMobToGUI(name)
-	if checkboxes[name] then return end
 	local cb = window:addCheckbox(name)
 	checkboxes[name] = cb
 	cb.Checked.Changed:Connect(updateTrackedMobs)
 	updateTrackedMobs()
 end
 
+local function cleanupWorkspace()
+	local mobsFolder = workspace:FindFirstChild("Mobs")
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		local plr = Players:GetPlayerFromCharacter(obj.Parent)
+		if obj:IsA("BasePart")
+			and not obj.CanCollide
+			and not obj:IsDescendantOf(mobsFolder)
+			and not plr
+		then
+			obj:Destroy()
+		end
+	end
+end
+
+local function moveToMobTarget(mob)
+	if not mob or not mob.Parent then return end
+	local hrp = mob:FindFirstChild("HumanoidRootPart")
+	if not hrp or not rootPart then return end
+
+	local dist = (rootPart.Position - hrp.Position).Magnitude
+	if dist > distanceThreshold then
+		pcall(function()
+			ClickToMove:MoveTo(hrp.Position)
+		end)
+		cleanupWorkspace()
+	end
+end
+
 spawn(function()
 	local nearestMob
 	local shortestDist = math.huge
-	local lastPos = rootPart.Position
 
 	while task.wait(loopInterval) do
+		if not rootPart or not character then
+			rootPart, character = getRoot()
+		end
+
 		nearestMob = nil
 		shortestDist = math.huge
 
@@ -79,25 +127,14 @@ spawn(function()
 					continue
 				end
 
-				if dist + distanceThreshold < shortestDist then
+				if dist < shortestDist then
 					shortestDist = dist
 					nearestMob = mob
+					noClip(mob)
 				end
 			end
 		end
 
-		if nearestMob and nearestMob.Parent then
-			local hrp = nearestMob:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local targetPos = hrp.Position
-				if (targetPos - lastPos).Magnitude > distanceThreshold then
-					lastPos = targetPos
-					shortestDist = (targetPos - rootPart.Position).Magnitude
-					pcall(function()
-						ClickToMove:MoveTo(targetPos)
-					end)
-				end
-			end
-		end
+		moveToMobTarget(nearestMob)
 	end
 end)
