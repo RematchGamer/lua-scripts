@@ -57,10 +57,12 @@ local function addMobToGUI(name)
 end
 
 local function cleanupWorkspace()
+    local char = getCurrentCharacter()
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.CanCollide == false and 
-           not obj:IsDescendantOf(mobsFolder) and 
-           not obj:IsDescendantOf(character) then
+        if obj:IsA("BasePart") and obj.CanCollide == false and
+           not obj:IsDescendantOf(mobsFolder) and
+           not obj:IsDescendantOf(char) and
+           not game.Players:GetPlayers()[obj.Parent] then
             obj:Destroy()
         end
     end
