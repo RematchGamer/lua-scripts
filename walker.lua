@@ -13,7 +13,7 @@ local distanceThreshold = 10
 local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
-local active = false
+local active = true -- Active by default
 
 -- GUI
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
@@ -21,48 +21,39 @@ local window = library:MakeWindow("Mob Follower")
 
 -- Active toggle
 local activeBox = window:addCheckbox("Active")
+activeBox.Checked.Value = true
 activeBox.Checked.Changed:Connect(function(value)
     active = value
+    print("Active changed:", active)
 end)
 
 -- Adjustable parameters
 local rangeBox = window:addTextBoxF("Range", function(val)
     local num = tonumber(val)
-    if num then range = num end
+    if num then
+        range = num
+        print("Range set to:", range)
+    end
 end)
 rangeBox.Value = tostring(range)
 
 local healthBox = window:addTextBoxF("Health Threshold", function(val)
     local num = tonumber(val)
-    if num then healthThreshold = num end
+    if num then
+        healthThreshold = num
+        print("Health threshold set to:", healthThreshold)
+    end
 end)
 healthBox.Value = tostring(healthThreshold)
 
 local intervalBox = window:addTextBoxF("Interval", function(val)
     local num = tonumber(val)
-    if num then waitInterval = num end
+    if num then
+        waitInterval = num
+        print("Interval set to:", waitInterval)
+    end
 end)
 intervalBox.Value = tostring(waitInterval)
-
---[[
--- --- NEW: Mobs tab ---
-local mobsTab = window:addTab("Mobs")
-local mobListLabels = {}
-
-local function updateMobList(mob)
-    local exists = false
-    for _, label in ipairs(mobListLabels) do
-        if label.Text == mob.Name then
-            exists = true
-            break
-        end
-    end
-    if not exists then
-        local label = mobsTab:addLabel(mob.Name)
-        table.insert(mobListLabels, label)
-    end
-end
---]]
 
 -- Mob tracking
 local nearest = nil
@@ -71,15 +62,10 @@ local shortest = math.huge
 spawn(function()
     while true do
         task.wait(waitInterval)
-        --[[
-        if not active then 
-            for _, mob in ipairs(mobsFolder:GetChildren()) do
-                if mob:IsA("Model") then
-                    updateMobList(mob)
-                end
-            end
+        if not active then
+            print("Script inactive, waiting...")
+            continue
         end
-        --]]
 
         -- Update player and rootPart in case of respawn
         player = Players.LocalPlayer
@@ -97,6 +83,7 @@ spawn(function()
 
                 -- Destroy mobs below health threshold within range
                 if health <= healthThreshold and dist < range then
+                    print("Destroying mob:", mob.Name, "Health:", health)
                     mob:Destroy()
                     break
                 end
@@ -106,17 +93,18 @@ spawn(function()
                     nearest = mob
                     shortest = dist
                     destination = mob.HumanoidRootPart.Position
+                    print("Moving to mob:", nearest.Name, "Distance:", shortest)
 
                     local success = pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
                     if not success then
+                        print("Failed to MoveTo:", nearest.Name)
                         nearest = nil
                         shortest = math.huge
                         break
                     end
                 end
-                -- updateMobList(mob) -- commented out for now
             end
         end
 
@@ -124,6 +112,7 @@ spawn(function()
         if nearest and nearest.Parent and destination then
             local distToDest = (destination - rootPart.Position).Magnitude
             if distToDest > range then
+                print("Adjusting move to:", destination)
                 pcall(function()
                     ClickToMove:MoveTo(destination)
                 end)
