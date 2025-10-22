@@ -71,7 +71,7 @@ local function updateMobList(mob)
     for _, label in ipairs(mobListLabels) do
         if label.Text == mobName then return end
     end
-    local label = window:addLabel(mobName)
+    local label = window:addLabel(mob:GetFullName())
     table.insert(mobListLabels, label)
 end
 
