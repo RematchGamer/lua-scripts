@@ -67,6 +67,7 @@ intervalBox.Value = tostring(waitInterval)
 local nearest = nil
 local shortest = math.huge
 local destination = nil
+local nextDes = nil
 
 spawn(function()
     while true do
@@ -82,32 +83,38 @@ spawn(function()
                 local health = mob.Entity.Health.Value
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
 
-                if deleteMobs and health <= healthThreshold and dist < range then
-                    print("Destroying mob:", mob.Name or "Unknown", "Health:", health)
+                if deleteMobs and health <= healthThreshold and dist < range and nextDes then
+                    pcall(function()
+                        ClickToMove:MoveTo(nextDes)
+                    end)
                     mob:Destroy()
                     nearest = nil
                     shortest = math.huge
-                    destination = nil
-                    break
+                    continue
                 end
 
-                if not nearest or dist < shortest - distanceThreshold then
-                    nearest = mob
-                    shortest = dist
+                if not nearest then
                     destination = mob.HumanoidRootPart.Position
-                    print("Targeting mob:", mob.Name or "Unknown", "Distance:", shortest)
-
                     pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
+                    nearest = mob
+                    shortest = dist
+                elseif dist < shortest - distanceThreshold then
+                    nextDes = nearest and nearest:FindFirstChild("HumanoidRootPart") and nearest.HumanoidRootPart.Position or nil
+                    destination = mob.HumanoidRootPart.Position
+                    pcall(function()
+                        ClickToMove:MoveTo(destination)
+                    end)
+                    nearest = mob
+                    shortest = dist
                 end
             end
         end
 
         if nearest and nearest.Parent and destination then
             shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
-            if shortest > range then 
-                print("Adjusting move to:", destination)
+            if shortest > range then
                 pcall(function()
                     ClickToMove:MoveTo(destination)
                 end)
