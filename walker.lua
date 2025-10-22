@@ -61,7 +61,7 @@ local function updateMobList(mob)
         if label.Text == mobName then return end
     end
     local cb = window:addCheckbox(obj.Name)
-    table.insert(mobListLabels, label)
+    --table.insert(mobListLabels, label)
 end
 
 local nearest = nil
