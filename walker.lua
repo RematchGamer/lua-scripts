@@ -85,7 +85,7 @@ spawn(function()
 
                 if deleteMobs and health <= healthThreshold and dist < range and nextDes then
                     pcall(function()
-                        ClickToMove:MoveTo(nextDes)
+                      ClickToMove:MoveTo(nextDes)
                     end)
                     mob:Destroy()
                     nearest = nil
@@ -101,11 +101,11 @@ spawn(function()
                     nearest = mob
                     shortest = dist
                 elseif dist < shortest - distanceThreshold then
-                    nextDes = nearest and nearest:FindFirstChild("HumanoidRootPart") and nearest.HumanoidRootPart.Position or nil
                     destination = mob.HumanoidRootPart.Position
                     pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
+                    nextDes = nearest.HumanoidRootPart.Position
                     nearest = mob
                     shortest = dist
                 end
@@ -114,7 +114,7 @@ spawn(function()
 
         if nearest and nearest.Parent and destination then
             shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
-            if shortest > range then
+            if shortest > range then 
                 pcall(function()
                     ClickToMove:MoveTo(destination)
                 end)
