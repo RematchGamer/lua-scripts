@@ -44,14 +44,39 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
+-- --- NEW: Mobs tab ---
+local mobsTab = window:addTab("Mobs")
+local mobListLabels = {}
+
 -- Mob tracking
 local nearest = nil
 local shortest = math.huge
 
+local function updateMobList(mob)
+    -- Only add the mob if it’s not already listed
+    local exists = false
+    for _, label in ipairs(mobListLabels) do
+        if label.Text == mob.Name then
+            exists = true
+            break
+        end
+    end
+    if not exists then
+        local label = mobsTab:addLabel(mob.Name)
+        table.insert(mobListLabels, label)
+    end
+end
+
 spawn(function()
     while true do
         task.wait(waitInterval)
-        if not active then continue end
+        if not active then 
+            for _, mob in ipairs(mobsFolder:GetChildren()) do
+                if mob:IsA("Model") then
+                    updateMobList(mob)
+                end
+            end
+        end
 
         -- Update player and rootPart in case of respawn
         player = Players.LocalPlayer
@@ -88,6 +113,7 @@ spawn(function()
                         break
                     end
                 end
+                updateMobList(mob)     
             end
         end
 
