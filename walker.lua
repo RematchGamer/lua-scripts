@@ -14,11 +14,13 @@ local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
 local active = true
+local deleteMobs = false
 
 -- GUI
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Follower")
 
+-- Active toggle
 local activeBox = window:addCheckbox("Active")
 activeBox.Checked.Value = true
 activeBox.Checked.Changed:Connect(function(value)
@@ -26,6 +28,15 @@ activeBox.Checked.Changed:Connect(function(value)
     print("Active changed:", active)
 end)
 
+-- Delete toggle
+local deleteBox = window:addCheckbox("Delete")
+deleteBox.Checked.Value = false
+deleteBox.Checked.Changed:Connect(function(value)
+    deleteMobs = value
+    print("Delete changed:", deleteMobs)
+end)
+
+-- Adjustable parameters
 local rangeBox = window:addTextBoxF("Range", function(val)
     local num = tonumber(val)
     if num then
@@ -51,7 +62,6 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
         print("Interval set to:", waitInterval)
     end
 end)
-
 intervalBox.Value = tostring(waitInterval)
 
 local mobListLabels = {}
@@ -61,14 +71,8 @@ local function updateMobList(mob)
     for _, label in ipairs(mobListLabels) do
         if label.Text == mobName then return end
     end
-    --local cb = window:addCheckbox(mob.Name)
+    local label = window:addLabel(mobName)
     table.insert(mobListLabels, label)
-end
-
-local function getPos(obj)
-    pcall(function()
-            return obj.Position
-        end)
 end
 
 local nearest = nil
@@ -96,7 +100,7 @@ spawn(function()
                 local health = mob.Entity.Health.Value
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
 
-                if health <= healthThreshold and dist < range then
+                if deleteMobs and health <= healthThreshold and dist < range then
                     print("Destroying mob:", mob.Name or "Unknown", "Health:", health)
                     mob:Destroy()
                     break
@@ -126,7 +130,6 @@ spawn(function()
         end
 
         if nearest and nearest.Parent and destination then
-            
             shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
             if shortest > range then 
                 print("Adjusting move to:", destination)
