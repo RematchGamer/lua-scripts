@@ -60,7 +60,7 @@ local function updateMobList(mob)
     for _, label in ipairs(mobListLabels) do
         if label.Text == mobName then return end
     end
-    --local cb = window:addCheckbox(obj.Name)
+    --local cb = window:addCheckbox(mob.Name)
     table.insert(mobListLabels, label)
 end
 
