@@ -13,13 +13,12 @@ local distanceThreshold = 10
 local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
-local active = true -- Active by default
+local active = true
 
 -- GUI
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Follower")
 
--- Active toggle
 local activeBox = window:addCheckbox("Active")
 activeBox.Checked.Value = true
 activeBox.Checked.Changed:Connect(function(value)
@@ -27,7 +26,6 @@ activeBox.Checked.Changed:Connect(function(value)
     print("Active changed:", active)
 end)
 
--- Adjustable parameters
 local rangeBox = window:addTextBoxF("Range", function(val)
     local num = tonumber(val)
     if num then
@@ -55,18 +53,17 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
--- Mob list (merged into main window)
 local mobListLabels = {}
 
 local function updateMobList(mob)
+    local mobName = mob and mob:GetFullName() or "Unknown Mob"
     for _, label in ipairs(mobListLabels) do
-        if label.Text == mob.Name then return end
+        if label.Text == mobName then return end
     end
-    local label = window:addLabel(mob.Name)
+    local label = window:addLabel(mobName)
     table.insert(mobListLabels, label)
 end
 
--- Mob tracking
 local nearest = nil
 local shortest = math.huge
 
@@ -95,7 +92,7 @@ spawn(function()
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
 
                 if health <= healthThreshold and dist < range then
-                    print("Destroying mob:", mob.Name, "Health:", health)
+                    print("Destroying mob:", mob.Name or "Unknown", "Health:", health)
                     mob:Destroy()
                     break
                 end
@@ -104,14 +101,14 @@ spawn(function()
                     nearest = mob
                     shortest = dist
                     destination = mob.HumanoidRootPart.Position
-                    print("Targeting mob:", nearest.Name, "Distance:", shortest)
+                    print("Targeting mob:", mob.Name or "Unknown", "Distance:", shortest)
 
                     local success = pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
                     if not success then
                         if not (nearest and nearest.Parent and destination) then
-                            print("Failed to MoveTo:", nearest.Name)
+                            print("Failed to MoveTo:", nearest.Name or "Unknown")
                             nearest = nil
                             shortest = math.huge
                             break
