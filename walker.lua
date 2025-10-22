@@ -51,6 +51,7 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
         print("Interval set to:", waitInterval)
     end
 end)
+
 intervalBox.Value = tostring(waitInterval)
 
 local mobListLabels = {}
@@ -62,6 +63,12 @@ local function updateMobList(mob)
     end
     --local cb = window:addCheckbox(mob.Name)
     table.insert(mobListLabels, label)
+end
+
+local function getPos(obj)
+    pcall(function()
+            return obj.Position
+        end)
 end
 
 local nearest = nil
@@ -119,7 +126,8 @@ spawn(function()
         end
 
         if nearest and nearest.Parent and destination then
-            shortest = (nearest.Position - rootPart.Position).Magnitude
+            
+            shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
             if shortest > range then 
                 print("Adjusting move to:", destination)
                 pcall(function()
