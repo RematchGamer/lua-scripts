@@ -55,6 +55,25 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
+-- --- Mobs tab ---
+local mobsTab = window:addTab("Mobs")
+local mobListLabels = {}
+
+local function updateMobList(mob)
+    -- Only add the mob if it’s not already listed
+    local exists = false
+    for _, label in ipairs(mobListLabels) do
+        if label.Text == mob.Name then
+            exists = true
+            break
+        end
+    end
+    if not exists then
+        local label = mobsTab:addLabel(mob.Name)
+        table.insert(mobListLabels, label)
+    end
+end
+
 -- Mob tracking
 local nearest = nil
 local shortest = math.huge
@@ -64,6 +83,11 @@ spawn(function()
         task.wait(waitInterval)
         if not active then
             print("Script inactive, waiting...")
+            for _, mob in ipairs(mobsFolder:GetChildren()) do
+                if mob:IsA("Model") then
+                    updateMobList(mob)
+                end
+            end
             continue
         end
 
@@ -72,8 +96,6 @@ spawn(function()
         character = player.Character or player.CharacterAdded:Wait()
         rootPart = character:WaitForChild("HumanoidRootPart")
 
-        nearest = nil
-        shortest = math.huge
         local destination = nil
 
         for _, mob in ipairs(mobsFolder:GetChildren()) do
@@ -88,12 +110,12 @@ spawn(function()
                     break
                 end
 
-                -- Track nearest mob
+                -- Only update nearest if closer than current nearest
                 if not nearest or dist < shortest - distanceThreshold then
                     nearest = mob
                     shortest = dist
                     destination = mob.HumanoidRootPart.Position
-                    print("Moving to mob:", nearest.Name, "Distance:", shortest)
+                    print("Targeting mob:", nearest.Name, "Distance:", shortest)
 
                     local success = pcall(function()
                         ClickToMove:MoveTo(destination)
@@ -105,18 +127,22 @@ spawn(function()
                         break
                     end
                 end
+
+                -- Update mob list
+                updateMobList(mob)
             end
         end
 
         -- Move to nearest if exists
         if nearest and nearest.Parent and destination then
-            local distToDest = (destination - rootPart.Position).Magnitude
-            if distToDest > range then
+            shortest = (destination - rootPart.Position).Magnitude
+            if shortest > range then 
                 print("Adjusting move to:", destination)
                 pcall(function()
                     ClickToMove:MoveTo(destination)
                 end)
             end
+            -- Update shortest without resetting nearest
             shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
         else
             nearest = nil
