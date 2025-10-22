@@ -9,7 +9,7 @@ local ClickToMove = module:GetClickToMoveController()
 local mobsFolder = workspace:WaitForChild("Mobs")
 
 -- Default parameters
-local distanceThreshold = 10
+local distanceThreshold = 20
 local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
@@ -84,8 +84,6 @@ spawn(function()
         character = player.Character or player.CharacterAdded:Wait()
         rootPart = character:WaitForChild("HumanoidRootPart")
 
-        local destination = nil
-
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
                 local health = mob.Entity.Health.Value
@@ -121,7 +119,7 @@ spawn(function()
         end
 
         if nearest and nearest.Parent and destination then
-            shortest = (destination - rootPart.Position).Magnitude
+            shortest = (nearest.Position - rootPart.Position).Magnitude
             if shortest > range then 
                 print("Adjusting move to:", destination)
                 pcall(function()
