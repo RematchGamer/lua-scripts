@@ -66,6 +66,7 @@ intervalBox.Value = tostring(waitInterval)
 
 local nearest = nil
 local shortest = math.huge
+local destination = nil
 
 spawn(function()
     while true do
@@ -76,7 +77,6 @@ spawn(function()
         character = player.Character or player.CharacterAdded:Wait()
         rootPart = character:WaitForChild("HumanoidRootPart")
 
-        local destination = nil
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
                 local health = mob.Entity.Health.Value
@@ -85,6 +85,9 @@ spawn(function()
                 if deleteMobs and health <= healthThreshold and dist < range then
                     print("Destroying mob:", mob.Name or "Unknown", "Health:", health)
                     mob:Destroy()
+                    nearest = nil
+                    shortest = math.huge
+                    destination = nil
                     break
                 end
 
