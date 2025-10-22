@@ -55,23 +55,15 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
--- --- Mobs tab ---
-local mobsTab = window:addTab("Mobs")
+-- Mob list (merged into main window)
 local mobListLabels = {}
 
 local function updateMobList(mob)
-    -- Only add the mob if it’s not already listed
-    local exists = false
     for _, label in ipairs(mobListLabels) do
-        if label.Text == mob.Name then
-            exists = true
-            break
-        end
+        if label.Text == mob.Name then return end
     end
-    if not exists then
-        local label = mobsTab:addLabel(mob.Name)
-        table.insert(mobListLabels, label)
-    end
+    local label = window:addLabel(mob.Name)
+    table.insert(mobListLabels, label)
 end
 
 -- Mob tracking
@@ -91,7 +83,6 @@ spawn(function()
             continue
         end
 
-        -- Update player and rootPart in case of respawn
         player = Players.LocalPlayer
         character = player.Character or player.CharacterAdded:Wait()
         rootPart = character:WaitForChild("HumanoidRootPart")
@@ -103,14 +94,12 @@ spawn(function()
                 local health = mob.Entity.Health.Value
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
 
-                -- Destroy mobs below health threshold within range
                 if health <= healthThreshold and dist < range then
                     print("Destroying mob:", mob.Name, "Health:", health)
                     mob:Destroy()
                     break
                 end
 
-                -- Only update nearest if closer than current nearest
                 if not nearest or dist < shortest - distanceThreshold then
                     nearest = mob
                     shortest = dist
@@ -121,19 +110,19 @@ spawn(function()
                         ClickToMove:MoveTo(destination)
                     end)
                     if not success then
-                        print("Failed to MoveTo:", nearest.Name)
-                        nearest = nil
-                        shortest = math.huge
-                        break
+                        if not (nearest and nearest.Parent and destination) then
+                            print("Failed to MoveTo:", nearest.Name)
+                            nearest = nil
+                            shortest = math.huge
+                            break
+                        end
                     end
                 end
 
-                -- Update mob list
                 updateMobList(mob)
             end
         end
 
-        -- Move to nearest if exists
         if nearest and nearest.Parent and destination then
             shortest = (destination - rootPart.Position).Magnitude
             if shortest > range then 
@@ -142,7 +131,6 @@ spawn(function()
                     ClickToMove:MoveTo(destination)
                 end)
             end
-            -- Update shortest without resetting nearest
             shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
         else
             nearest = nil
