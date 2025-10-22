@@ -13,7 +13,7 @@ local distanceThreshold = 20
 local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
-local active = true
+local active = false
 local deleteMobs = false
 
 -- GUI
@@ -22,7 +22,7 @@ local window = library:MakeWindow("Mob Follower")
 
 -- Active toggle
 local activeBox = window:addCheckbox("Active")
-activeBox.Checked.Value = true
+activeBox.Checked.Value = false
 activeBox.Checked.Changed:Connect(function(value)
     active = value
     print("Active changed:", active)
@@ -64,37 +64,19 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
-local mobListLabels = {}
-
-local function updateMobList(mob)
-    local mobName = mob and mob:GetFullName() or "Unknown Mob"
-    for _, label in ipairs(mobListLabels) do
-        if label.Text == mobName then return end
-    end
-    local label = window:addLabel("Test")
-    table.insert(mobListLabels, label)
-end
-
 local nearest = nil
 local shortest = math.huge
 
 spawn(function()
     while true do
         task.wait(waitInterval)
-        if not active then
-            print("Script inactive, waiting...")
-            for _, mob in ipairs(mobsFolder:GetChildren()) do
-                if mob:IsA("Model") then
-                    updateMobList(mob)
-                end
-            end
-            continue
-        end
+        if not active then continue end
 
         player = Players.LocalPlayer
         character = player.Character or player.CharacterAdded:Wait()
         rootPart = character:WaitForChild("HumanoidRootPart")
 
+        local destination = nil
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
                 local health = mob.Entity.Health.Value
@@ -112,20 +94,10 @@ spawn(function()
                     destination = mob.HumanoidRootPart.Position
                     print("Targeting mob:", mob.Name or "Unknown", "Distance:", shortest)
 
-                    local success = pcall(function()
+                    pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
-                    if not success then
-                        if not (nearest and nearest.Parent and destination) then
-                            print("Failed to MoveTo:", nearest.Name or "Unknown")
-                            nearest = nil
-                            shortest = math.huge
-                            break
-                        end
-                    end
                 end
-
-                updateMobList(mob)
             end
         end
 
@@ -137,7 +109,6 @@ spawn(function()
                     ClickToMove:MoveTo(destination)
                 end)
             end
-            shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
         else
             nearest = nil
             shortest = math.huge
