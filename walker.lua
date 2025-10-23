@@ -14,6 +14,7 @@ local range = 30
 local waitInterval = 0.5
 local active = false
 local deleteMobs = false
+local cleanup = false
 
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Follower")
@@ -30,6 +31,13 @@ deleteBox.Checked.Value = false
 deleteBox.Checked.Changed:Connect(function(value)
     deleteMobs = value
     print("Delete changed:", deleteMobs)
+end)
+
+local cleaupBox = window:addCheckbox("cleanup")
+cleanupBox.Checked.Value = false
+cleanupBox.Checked.Changed:Connect(function(value)
+    cleanup = value
+    print("cleanup changed:", cleanup)
 end)
 
 local rangeBox = window:addTextBoxF("Range", function(val)
@@ -66,6 +74,21 @@ local nextClosest = math.huge
 local destination = nil
 local nextDes = nil
 
+local function cleanupWorkspace()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and
+           obj.CanCollide == false and
+           not obj:IsDescendantOf(mobsFolder) and
+           not obj:IsDescendantOf(character) and
+           not obj.Name ~= "HumanoidRootPart" then
+                if obj.CanCollide == false then
+                    obj:Destroy()
+                end
+            end
+        end
+    end
+end
+
 spawn(function()
     while true do
         task.wait(waitInterval)
@@ -78,7 +101,7 @@ spawn(function()
 
                 if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
                     destination = nextTarget.HumanoidRootPart.Position
-                    print("Destroying", target.Name)
+                    print("Destroying")
                     pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
@@ -89,7 +112,6 @@ spawn(function()
                 end
 
                 if not closest or closest == math.huge then
-                    print("New target ", mob.Name)
                     closest = dist
                     target = mob
                 elseif dist < closest - distanceThreshold then
@@ -101,18 +123,18 @@ spawn(function()
             end
         end
         if target and target.Parent then
-            print("Target ", target.Name)
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > range then
-                print("Attemping to move")
                 pcall(function()
                     ClickToMove:MoveTo(targetPos)
                 end)
-                destination = targetPos  
+                destination = targetPos
+                if cleanup == True then
+                    cleanupWorkspace()
+                end
             end
         elseif nextTarget and nextTarget.Parent then
             local targetPos = nextTarget.HumanoidRootPart.Position
-            print("Attemping to move next", nextTarget)
             pcall(function()
                 ClickToMove:MoveTo(targetPos)
             end)
