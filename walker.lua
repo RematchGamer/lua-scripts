@@ -33,11 +33,11 @@ deleteBox.Checked.Changed:Connect(function(value)
     print("Delete changed:", deleteMobs)
 end)
 
-local cleaupBox = window:addCheckbox("cleanup")
+local cleaupBox = window:addCheckbox("Cleanup")
 cleanupBox.Checked.Value = false
 cleanupBox.Checked.Changed:Connect(function(value)
     cleanup = value
-    print("cleanup changed:", cleanup)
+    print("Cleanup changed:", cleanup)
 end)
 
 local rangeBox = window:addTextBoxF("Range", function(val)
@@ -129,7 +129,7 @@ spawn(function()
                     ClickToMove:MoveTo(targetPos)
                 end)
                 destination = targetPos
-                if cleanup == True then
+                if cleanup then
                     cleanupWorkspace()
                 end
             end
