@@ -1,7 +1,9 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
+
+local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+local ClickToMove = module:GetClickToMoveController()
 
 local savedPosition = root.Position
 local interval = 1
@@ -28,6 +30,6 @@ end)
 
 task.spawn(function()
 	while wait(interval) and stay do
-		humanoid:MoveTo(savedPosition)
+		ClickToMove:MoveTo(savedPosition)
 	end
 end)
