@@ -90,7 +90,7 @@ spawn(function()
                 end
 
                 if not closest or closest == math.huge then
-                    print("New target ", mob)
+                    print("New target ", mob.Name)
                     closest = dist
                     target = mob
                 elseif dist < closest - distanceThreshold then
@@ -101,7 +101,7 @@ spawn(function()
                 end
             end
         end
-        print("Target ", mob)
+        print("Target ", mob.Name)
         if target and target.Parent then
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > distanceThreshold then
