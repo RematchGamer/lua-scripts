@@ -67,6 +67,15 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
+local distanceBox = window:addTextBoxF("Distance Threshold", function(val)
+    local num = tonumber(val)
+    if num then
+        distanceThreshold = num
+        print("Distance threshold set to:", distanceThreshold)
+    end
+end)
+distanceBox.Value = tostring(distanceThreshold)
+
 local target = nil
 local closest = math.huge
 local nextTarget = nil
@@ -80,65 +89,110 @@ local function cleanupWorkspace()
            not obj:IsDescendantOf(mobsFolder) and
            not obj:IsDescendantOf(character) and
            obj.Name ~= "HumanoidRootPart" then
-                obj:Destroy()
+            obj:Destroy()
         end
     end
+end
+
+local function isValidMob(mob)
+    return mob and mob.Parent and mob:IsA("Model") and
+           mob:FindFirstChild("HumanoidRootPart") and
+           mob:FindFirstChild("Entity") and
+           mob.Entity:FindFirstChild("Health")
 end
 
 spawn(function()
     while true do
         task.wait(waitInterval)
-        if not active then continue end
-            
+        if not active then
+            target = nil
+            nextTarget = nil
+            closest = math.huge
+            nextClosest = math.huge
+            destination = nil
+            continue
+        end
+
+        -- Reset targets if they are no longer valid
+        if target and not isValidMob(target) then
+            target = nil
+            closest = math.huge
+            destination = nil
+        end
+        if nextTarget and not isValidMob(nextTarget) then
+            nextTarget = nil
+            nextClosest = math.huge
+        end
+
+        -- Find the closest and next closest mobs
         for _, mob in ipairs(mobsFolder:GetChildren()) do
-            if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
+            if isValidMob(mob) then
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
                 local health = mob.Entity.Health.Value
 
-                if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and nextTarget:FindFirstChild("HumanoidRootPart") and health <= healthThreshold and dist <= range then
-                    destination = nextTarget.HumanoidRootPart.Position
-                    pcall(function()
-                        ClickToMove:MoveTo(destination)
-                    end)
+                -- Destroy mob if conditions are met and move to nextTarget immediately
+                if deleteMobs and target == mob and health <= healthThreshold and dist <= range then
                     mob:Destroy()
-                    target = nextTarget
-                    closest = nextClosest
+                    target = nil
+                    closest = math.huge
+                    destination = nil
+
+                    -- Immediately transition to nextTarget if valid
+                    if nextTarget and isValidMob(nextTarget) then
+                        target = nextTarget
+                        closest = nextClosest
+                        nextTarget = nil
+                        nextClosest = math.huge
+                        destination = target.HumanoidRootPart.Position
+                        pcall(function()
+                            ClickToMove:MoveTo(destination)
+                        end)
+                    end
                     continue
                 end
 
-                if closest == math.huge then
-                    closest = dist
-                    target = mob
-                elseif dist < closest - distanceThreshold then
+                -- Update closest and next closest mobs using distanceThreshold
+                if dist < closest - distanceThreshold then
                     nextClosest = closest
                     nextTarget = target
                     closest = dist
                     target = mob
+                elseif dist < nextClosest - distanceThreshold then
+                    nextClosest = dist
+                    nextTarget = mob
                 end
             end
         end
-        if target and target.Parent then
+
+        -- Move to the current target if valid
+        if target and isValidMob(target) then
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > range then
-                pcall(function()
-                    ClickToMove:MoveTo(targetPos)
-                end)
                 destination = targetPos
+                pcall(function()
+                    ClickToMove:MoveTo(destination)
+                end)
                 if cleanup then
                     cleanupWorkspace()
                 end
             end
-        elseif nextTarget and nextTarget.Parent then
-            local targetPos = nextTarget.HumanoidRootPart.Position
-            pcall(function()
-                ClickToMove:MoveTo(targetPos)
-            end)
-            destination = targetPos
+        elseif nextTarget and isValidMob(nextTarget) then
+            -- Fallback to nextTarget if no target is set
             target = nextTarget
             closest = nextClosest
+            nextTarget = nil
+            nextClosest = math.huge
+            destination = target.HumanoidRootPart.Position
+            pcall(function()
+                ClickToMove:MoveTo(destination)
+            end)
         else
-          target = nil
-          closest = math.huge
+            -- No valid targets, reset everything
+            target = nil
+            nextTarget = nil
+            closest = math.huge
+            nextClosest = math.huge
+            destination = nil
         end
     end
 end)
