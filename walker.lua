@@ -8,7 +8,7 @@ local ClickToMove = module:GetClickToMoveController()
 
 local mobsFolder = workspace:WaitForChild("Mobs")
 
-local distanceThreshold = 20
+local distanceThreshold = 10
 local healthThreshold = 5
 local range = 30
 local waitInterval = 0.5
@@ -97,13 +97,12 @@ spawn(function()
 
                 if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and nextTarget:FindFirstChild("HumanoidRootPart") and health <= healthThreshold and dist <= range then
                     destination = nextTarget.HumanoidRootPart.Position
-                    print("Destroying")
                     pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
                     mob:Destroy()
-                    target = nil
-                    closest = math.huge
+                    target = nextTarget
+                    closest = nextClosest
                     continue
                 end
 
