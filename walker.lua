@@ -72,7 +72,6 @@ local closest = math.huge
 local nextTarget = nil
 local nextClosest = math.huge
 local destination = nil
-local nextDes = nil
 
 local function cleanupWorkspace()
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -81,10 +80,7 @@ local function cleanupWorkspace()
            not obj:IsDescendantOf(mobsFolder) and
            not obj:IsDescendantOf(character) and
            obj.Name ~= "HumanoidRootPart" then
-                if obj.CanCollide == false then
-                    obj:Destroy()
-                end
-            end
+                obj:Destroy()
         end
     end
 end
@@ -99,7 +95,7 @@ spawn(function()
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
                 local health = mob.Entity.Health.Value
 
-                if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
+                if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and nextTarget:FindFirstChild("HumanoidRootPart") and health <= healthThreshold and dist <= range then
                     destination = nextTarget.HumanoidRootPart.Position
                     print("Destroying")
                     pcall(function()
