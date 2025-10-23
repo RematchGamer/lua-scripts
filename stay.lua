@@ -44,12 +44,12 @@ end
 
 local cleanupBox = window:addCheckbox("Cleanup")
 cleanupBox.Checked.Value = false
-cleanupBox.Checked.Changed:Connect(function(value)
-	cleanup = value
+cleanupBox.Checked.Changed:Connect(function()
+	cleanup = cleanupBox.Checked.Value
 end)
 
 task.spawn(function()
-	while wait(interval) do
+	while task.wait(interval) do
 		if stay then
 			ClickToMove:MoveTo(savedPosition)
 		end
