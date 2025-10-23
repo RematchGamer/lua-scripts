@@ -145,6 +145,7 @@ spawn(function()
                         nextClosest = math.huge
                         destination = target.HumanoidRootPart.Position
                         pcall(function()
+                            character = player.Character or player.CharacterAdded:Wait()
                             ClickToMove:MoveTo(destination)
                         end)
                     end
