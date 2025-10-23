@@ -70,8 +70,7 @@ spawn(function()
     while true do
         task.wait(waitInterval)
         if not active then continue end
-
-        print(mobsFolder:GetChildren())
+            
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
@@ -85,7 +84,7 @@ spawn(function()
                     end)
                     mob:Destroy()
                     target = nil
-                    closest = nil
+                    closest = math.huge
                     continue
                 end
 
@@ -121,8 +120,7 @@ spawn(function()
             target = nextTarget
             closest = nextClosest
         else
-            target = nil
-            closest = nil
-        end
+          target = nil
+          closest = math.huge
     end
 end)
