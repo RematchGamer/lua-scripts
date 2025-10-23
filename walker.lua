@@ -77,7 +77,7 @@ spawn(function()
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
                 local health = mob.Entity.Health.Value
 
-                if target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
+                if deleteMobs and target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
                     destination = nextTarget.HumanoidRootPart.Position
                     print("Destroying", target.Name)
                     pcall(function()
@@ -101,7 +101,7 @@ spawn(function()
                 end
             end
         end
-        print("Target ", mob.Name)
+        print("Target ", target.Name)
         if target and target.Parent then
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > distanceThreshold then
