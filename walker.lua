@@ -33,7 +33,7 @@ deleteBox.Checked.Changed:Connect(function(value)
     print("Delete changed:", deleteMobs)
 end)
 
-local cleaupBox = window:addCheckbox("Cleanup")
+local cleanupBox = window:addCheckbox("Cleanup")
 cleanupBox.Checked.Value = false
 cleanupBox.Checked.Changed:Connect(function(value)
     cleanup = value
@@ -80,7 +80,7 @@ local function cleanupWorkspace()
            obj.CanCollide == false and
            not obj:IsDescendantOf(mobsFolder) and
            not obj:IsDescendantOf(character) and
-           not obj.Name ~= "HumanoidRootPart" then
+           obj.Name ~= "HumanoidRootPart" then
                 if obj.CanCollide == false then
                     obj:Destroy()
                 end
@@ -111,7 +111,7 @@ spawn(function()
                     continue
                 end
 
-                if not closest or closest == math.huge then
+                if closest == math.huge then
                     closest = dist
                     target = mob
                 elseif dist < closest - distanceThreshold then
