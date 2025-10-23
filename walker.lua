@@ -132,7 +132,6 @@ spawn(function()
 
                 -- Destroy mob if conditions are met and move to nextTarget immediately
                 if deleteMobs and target == mob and health <= healthThreshold and dist <= range then
-                    print("Destroy")
                     mob:Destroy()
                     target = nil
                     closest = math.huge
