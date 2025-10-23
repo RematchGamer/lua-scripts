@@ -5,9 +5,11 @@ local root = character:WaitForChild("HumanoidRootPart")
 local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
 local ClickToMove = module:GetClickToMoveController()
 
+local mobsFolder = workspace:FindFirstChild("Mobs")
 local savedPosition = root.Position
 local interval = 1
 local stay = false
+local cleanup = false
 
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Stay")
@@ -28,8 +30,31 @@ stayCheckbox.Checked.Changed:Connect(function()
 	stay = stayCheckbox.Checked.Value
 end)
 
+local function cleanupWorkspace()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart")
+			and not obj.CanCollide
+			and (not mobsFolder or not obj:IsDescendantOf(mobsFolder))
+			and not obj:IsDescendantOf(character)
+			and obj.Name ~= "HumanoidRootPart" then
+			obj:Destroy()
+		end
+	end
+end
+
+local cleanupBox = window:addCheckbox("Cleanup")
+cleanupBox.Checked.Value = false
+cleanupBox.Checked.Changed:Connect(function(value)
+	cleanup = value
+end)
+
 task.spawn(function()
-	while wait(interval) and stay do
-		ClickToMove:MoveTo(savedPosition)
+	while wait(interval) do
+		if stay then
+			ClickToMove:MoveTo(savedPosition)
+		end
+		if cleanup then
+			cleanupWorkspace()
+		end
 	end
 end)
