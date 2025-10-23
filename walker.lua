@@ -8,7 +8,6 @@ local ClickToMove = module:GetClickToMoveController()
 
 local mobsFolder = workspace:WaitForChild("Mobs")
 
--- Default parameters
 local distanceThreshold = 20
 local healthThreshold = 5
 local range = 30
@@ -16,11 +15,9 @@ local waitInterval = 0.5
 local active = false
 local deleteMobs = false
 
--- GUI
 local library = loadstring(game:HttpGet("https://gist.githubusercontent.com/oufguy/62dbf2a4908b3b6a527d5af93e7fca7d/raw/6b2a0ecf0e24bbad7564f7f886c0b8d727843a92/Swordburst%25202%2520KILL%2520AURA%2520GUI(not%2520script)"))()
 local window = library:MakeWindow("Mob Follower")
 
--- Active toggle
 local activeBox = window:addCheckbox("Active")
 activeBox.Checked.Value = false
 activeBox.Checked.Changed:Connect(function(value)
@@ -28,7 +25,6 @@ activeBox.Checked.Changed:Connect(function(value)
     print("Active changed:", active)
 end)
 
--- Delete toggle
 local deleteBox = window:addCheckbox("Delete")
 deleteBox.Checked.Value = false
 deleteBox.Checked.Changed:Connect(function(value)
@@ -36,7 +32,6 @@ deleteBox.Checked.Changed:Connect(function(value)
     print("Delete changed:", deleteMobs)
 end)
 
--- Adjustable parameters
 local rangeBox = window:addTextBoxF("Range", function(val)
     local num = tonumber(val)
     if num then
@@ -64,8 +59,10 @@ local intervalBox = window:addTextBoxF("Interval", function(val)
 end)
 intervalBox.Value = tostring(waitInterval)
 
-local nearest = nil
-local shortest = math.huge
+local target = nil
+local closest = math.huge
+local nextTarget = nil
+local nextClosest = math.huge
 local destination = nil
 local nextDes = nil
 
@@ -74,54 +71,50 @@ spawn(function()
         task.wait(waitInterval)
         if not active then continue end
 
-        player = Players.LocalPlayer
-        character = player.Character or player.CharacterAdded:Wait()
-        rootPart = character:WaitForChild("HumanoidRootPart")
-
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
-                local health = mob.Entity.Health.Value
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
+                local health = mob.Entity.Health.Value
 
-                if deleteMobs and health <= healthThreshold and dist < range and nextDes then
+                if target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
+                    destination = nextTarget.HumanoidRootPart.Position
                     pcall(function()
-                      ClickToMove:MoveTo(nextDes)
+                        ClickToMove:MoveTo(destination)
                     end)
                     mob:Destroy()
-                    nearest = nil
-                    shortest = math.huge
+                    target = nextTarget
+                    closest = nextClosest
                     continue
                 end
 
-                if not nearest then
-                    destination = mob.HumanoidRootPart.Position
-                    pcall(function()
-                        ClickToMove:MoveTo(destination)
-                    end)
-                    nearest = mob
-                    shortest = dist
-                elseif dist < shortest - distanceThreshold then
-                    destination = mob.HumanoidRootPart.Position
-                    pcall(function()
-                        ClickToMove:MoveTo(destination)
-                    end)
-                    nextDes = nearest.HumanoidRootPart.Position
-                    nearest = mob
-                    shortest = dist
+                if not closest or closest == math.huge then
+                    closest = dist
+                    target = mob
+                elseif dist < closest - distanceThreshold then
+                    nextClosest = closest
+                    nextTarget = target
+                    closest = dist
+                    target = mob
                 end
             end
         end
 
-        if nearest and nearest.Parent and destination then
-            shortest = (nearest.HumanoidRootPart.Position - rootPart.Position).Magnitude
-            if shortest > range then 
+        if target and target.Parent then
+            local targetPos = target.HumanoidRootPart.Position
+            if not destination or (targetPos - destination).Magnitude > distanceThreshold then
                 pcall(function()
-                    ClickToMove:MoveTo(destination)
+                    ClickToMove:MoveTo(targetPos)
                 end)
+                destination = targetPos
             end
-        else
-            nearest = nil
-            shortest = math.huge
+        elseif nextTarget and nextTarget.Parent then
+            local targetPos = nextTarget.HumanoidRootPart.Position
+            pcall(function()
+                ClickToMove:MoveTo(targetPos)
+            end)
+            destination = targetPos
+            target = nextTarget
+            closest = nextClosest
         end
     end
 end)
