@@ -84,8 +84,8 @@ spawn(function()
                         ClickToMove:MoveTo(destination)
                     end)
                     mob:Destroy()
-                    target = nextTarget
-                    closest = nextClosest
+                    target = nil
+                    closest = nil
                     continue
                 end
 
@@ -104,7 +104,7 @@ spawn(function()
         print("Target ", target.Name)
         if target and target.Parent then
             local targetPos = target.HumanoidRootPart.Position
-            if not destination or (targetPos - destination).Magnitude > distanceThreshold then
+            if not destination or (targetPos - destination).Magnitude > range then
                 print("Attemping to move")
                 pcall(function()
                     ClickToMove:MoveTo(targetPos)
@@ -120,6 +120,9 @@ spawn(function()
             destination = targetPos
             target = nextTarget
             closest = nextClosest
+        else
+            target = nil
+            closest = nil
         end
     end
 end)
