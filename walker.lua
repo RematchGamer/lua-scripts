@@ -100,8 +100,8 @@ spawn(function()
                 end
             end
         end
-        print("Target ", target.Name)
         if target and target.Parent then
+            print("Target ", target.Name)
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > range then
                 print("Attemping to move")
@@ -112,7 +112,7 @@ spawn(function()
             end
         elseif nextTarget and nextTarget.Parent then
             local targetPos = nextTarget.HumanoidRootPart.Position
-            print("Attemping to move next")
+            print("Attemping to move next", nextTarget)
             pcall(function()
                 ClickToMove:MoveTo(targetPos)
             end)
@@ -122,5 +122,6 @@ spawn(function()
         else
           target = nil
           closest = math.huge
+        end
     end
 end)
