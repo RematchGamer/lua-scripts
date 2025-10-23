@@ -71,6 +71,7 @@ spawn(function()
         task.wait(waitInterval)
         if not active then continue end
 
+        print(mobsFolder:GetChildren())
         for _, mob in ipairs(mobsFolder:GetChildren()) do
             if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Entity") and mob.Entity:FindFirstChild("Health") then
                 local dist = (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude
@@ -78,6 +79,7 @@ spawn(function()
 
                 if target and mob == target and nextTarget and nextTarget.Parent and health <= healthThreshold and dist <= range then
                     destination = nextTarget.HumanoidRootPart.Position
+                    print("Destroying", target.Name)
                     pcall(function()
                         ClickToMove:MoveTo(destination)
                     end)
@@ -88,6 +90,7 @@ spawn(function()
                 end
 
                 if not closest or closest == math.huge then
+                    print("New target ", mob)
                     closest = dist
                     target = mob
                 elseif dist < closest - distanceThreshold then
@@ -98,17 +101,19 @@ spawn(function()
                 end
             end
         end
-
+        print("Target ", mob)
         if target and target.Parent then
             local targetPos = target.HumanoidRootPart.Position
             if not destination or (targetPos - destination).Magnitude > distanceThreshold then
+                print("Attemping to move")
                 pcall(function()
                     ClickToMove:MoveTo(targetPos)
                 end)
-                destination = targetPos
+                destination = targetPos  
             end
         elseif nextTarget and nextTarget.Parent then
             local targetPos = nextTarget.HumanoidRootPart.Position
+            print("Attemping to move next")
             pcall(function()
                 ClickToMove:MoveTo(targetPos)
             end)
